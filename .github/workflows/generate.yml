@@ -1,0 +1,50 @@
+name: Generer une video
+
+on:
+  workflow_dispatch:
+    inputs:
+      sujet:
+        description: "Sujet de la video"
+        required: true
+        default: "L'histoire de Rome"
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installer FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Installer les dependances
+        run: pip install -r requirements.txt
+
+      - name: Generer la video
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          TOPIC: ${{ inputs.sujet }}
+        run: python main.py
+
+      - name: Envoyer la video
+        uses: actions/upload-artifact@v4
+        with:
+          name: video
+          path: |
+            output/video.mp4
+            output/description.txt
+            output/script.txt
+          if-no-files-found: error
+          retention-days: 14
