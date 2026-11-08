@@ -6,7 +6,15 @@ on:
       sujet:
         description: "Sujet de la video"
         required: true
-        default: "L'histoire de Rome"
+        default: "Et si le temps s'arretait ?"
+      chaine:
+        description: "Nom de ta chaine (dit apres l'accroche)"
+        required: false
+        default: ""
+      minutes:
+        description: "Duree visee en minutes"
+        required: false
+        default: "20"
 
 permissions:
   contents: read
@@ -14,7 +22,7 @@ permissions:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +44,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           TOPIC: ${{ inputs.sujet }}
+          CHANNEL: ${{ inputs.chaine }}
+          MINUTES: ${{ inputs.minutes }}
         run: python main.py
 
       - name: Envoyer la video
