@@ -33,6 +33,8 @@ FPS = 25
 OVERLAP = 15  # images du fondu enchaine (0,6 s)
 LOOK = os.environ.get("LOOK", "cosmic")  # "cosmic" ou "none"
 MUSIC = os.environ.get("MUSIC", "on") != "off"
+MUSIC_LEVEL = os.environ.get("MUSIC_LEVEL", "-25")  # volume de la musique (LUFS) : plus haut = plus fort
+CARDS = os.environ.get("CARDS", "off") == "on"  # cartes de titre a l'ecran (coupees par defaut)
 VOICES = [os.environ.get("VOICE") or "fr-FR-HenriNeural", "fr-FR-RemyMultilingualNeural"]
 VOICE_RATE = os.environ.get("VOICE_RATE", "-6%")  # un peu plus lent
 VOICE_PITCH = os.environ.get("VOICE_PITCH", "-6Hz")  # un peu plus grave
@@ -548,7 +550,10 @@ def make_drone(secs, out):
 
 
 def mix_music(voice, out, secs):
-    mine = sorted(p for e in ("mp3", "m4a", "wav", "ogg", "flac") for p in Path("music").glob(f"*.{e}"))
+    mine = sorted(
+        p for d in (Path("music"), Path(".")) for e in ("mp3", "m4a", "wav", "ogg", "flac")
+        for p in d.glob(f"*.{e}")
+    )
     if mine:
         log(f"Musique : {mine[0].name}")
         music_in = ["-stream_loop", "-1", "-i", str(mine[0])]
@@ -559,9 +564,9 @@ def mix_music(voice, out, secs):
         music_in = ["-i", str(bed)]
     fade_out = max(0, secs - 6)
     fc = (
-        "[0:a]loudnorm=I=-17:TP=-2:LRA=9,aresample=44100,"
+        "[0:a]loudnorm=I=-16:TP=-2:LRA=9,aresample=44100,"
         "aformat=sample_rates=44100:channel_layouts=stereo[v];"
-        "[1:a]loudnorm=I=-34:TP=-6:LRA=7,aresample=44100,"
+        f"[1:a]loudnorm=I={MUSIC_LEVEL}:TP=-5:LRA=7,aresample=44100,"
         "aformat=sample_rates=44100:channel_layouts=stereo,"
         f"afade=t=in:st=0:d=4,afade=t=out:st={fade_out}:d=6[m];"
         "[v][m]amix=inputs=2:duration=first:normalize=0:dropout_transition=0,"
@@ -611,7 +616,7 @@ def render_segment(idx, seg, used, credits):
         clips.append(clip)
 
     card_png, span = None, None
-    if seg["card"]:
+    if seg["card"] and CARDS:
         card_png = WORK / f"card_{idx}.png"
         try:
             make_card_png(seg["card"][0], seg["card"][1], card_png, color=idx)
